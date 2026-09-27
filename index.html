@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Volg je kleur — mockup</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Mockup: bezoekers kiezen in de hal een zaal en volgen hun eigen kleur door het museum.">
+<style>
+  :root {
+    --inkt: #1d1d1f;
+    --grijs: #6e6e73;
+    --papier: rgba(255, 255, 255, 0.92);
+    --lijn: rgba(0, 0, 0, 0.1);
+    --accent: #2f6bff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #f4f2ee; color: var(--inkt);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  .balk { position: fixed; top: 0; left: 0; right: 0; padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  .rij { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .rij > * { pointer-events: auto; }
+  .titel { font-weight: 700; letter-spacing: 0.01em; background: var(--papier); padding: 6px 10px; border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .titel small { font-weight: 400; color: var(--grijs); margin-left: 4px; }
+  .knoppen { display: flex; gap: 6px; flex-wrap: wrap; }
+  .groep { display: inline-flex; background: var(--papier); border-radius: 10px; padding: 3px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  button { font: inherit; border: 0; background: transparent; color: var(--inkt); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+  .groep button[aria-pressed="true"] { background: var(--inkt); color: #fff; }
+  .los { background: var(--papier); box-shadow: 0 1px 4px rgba(0,0,0,.08); border-radius: 10px; }
+  .los[aria-pressed="true"] { background: #1d1d1f; color: #fff; }
+
+  .uitleg { font-size: 13px; color: var(--grijs); }
+  .uitleg span { background: var(--papier); padding: 3px 8px; border-radius: 8px; box-decoration-break: clone;
+    -webkit-box-decoration-break: clone; line-height: 1.7; }
+
+  .onder { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 12px max(14px, env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  .onder > * { pointer-events: auto; }
+  .kaart { background: var(--papier); border-radius: 16px; padding: 12px 14px; box-shadow: 0 4px 18px rgba(0,0,0,.12);
+    width: min(440px, 100%); }
+  .groot { width: min(440px, 100%); padding: 14px; font-size: 17px; font-weight: 600; background: var(--inkt); color: #fff;
+    border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.18); }
+  .zalen { display: grid; gap: 6px; margin-top: 8px; }
+  .zalen button { text-align: left; background: #fff; border: 1px solid var(--lijn); padding: 10px 12px; border-radius: 10px; }
+  .zalen button b { display: inline-block; min-width: 62px; }
+  .badge { display: flex; align-items: center; gap: 10px; }
+  .badge svg { flex: none; }
+  .badge .tekst { line-height: 1.3; }
+  .badge .tekst small { color: var(--grijs); }
+  .verhaal { font-size: 16px; }
+  .verhaal i { color: var(--grijs); font-style: normal; font-size: 13px; display: block; margin-bottom: 4px; }
+  [hidden] { display: none !important; }
+
+  .bijschrift { position: fixed; left: 50%; top: 14%; transform: translateX(-50%); width: min(88%, 520px);
+    text-align: center; font-size: 26px; font-weight: 700; line-height: 1.25; color: #1d1d1f;
+    background: rgba(255,255,255,.9); padding: 14px 18px; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.12); }
+  .bijschrift small { display: block; font-size: 15px; font-weight: 500; color: var(--grijs); margin-top: 6px; }
+  body.video .balk, body.video .uitleg { display: none; }
+</style>
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div class="balk">
+  <div class="rij">
+  <div class="titel">Volg je kleur <small>mockup</small></div>
+  <div class="knoppen">
+    <div class="groep" role="group" aria-label="Variant">
+      <button data-variant="A" aria-pressed="false" title="Lichtspoor over de hele route">A</button>
+      <button data-variant="B" aria-pressed="false" title="Een Pi-scherm op elk kruispunt">B</button>
+      <button data-variant="C" aria-pressed="true" title="Schermen plus licht bij hal en zaaldeur">C</button>
+    </div>
+    <button id="droom" class="los" aria-pressed="false">✦ Droom</button>
+    <button id="overzicht" class="los" aria-pressed="false">Overzicht</button>
+  </div>
+  </div>
+  <div class="uitleg"><span id="uitleg-variant"></span></div>
+</div>
+
+<div class="bijschrift" id="bijschrift" hidden></div>
+
+<div class="onder">
+  <div class="kaart" id="menu" hidden>
+    <div><b>Waar wil je heen?</b> <span style="color:var(--grijs)">Het scherm in de hal</span></div>
+    <div class="zalen" id="zalen"></div>
+  </div>
+  <div class="kaart badge" id="badge" hidden></div>
+  <div class="kaart verhaal" id="verhaal" hidden></div>
+  <button class="groot" id="kies">Tik op het scherm in de hal</button>
+  <button class="groot" id="opnieuw" hidden>Nog een keer</button>
+</div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
