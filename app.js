@@ -200,7 +200,7 @@ for (const [id, [x, z]] of Object.entries(STUK)) {
     kom, new THREE.OctahedronGeometry(0.32), new THREE.CylinderGeometry(0.34, 0.2, 0.18, 32),
   ];
   const m = new THREE.Mesh(vormen[id - 1], new THREE.MeshLambertMaterial({ color: '#d9d4c9', side: THREE.DoubleSide }));
-  m.position.set(x, id === 3 ? 1.02 : 1.35, z); scene.add(m);
+  m.position.set(x, Number(id) === 3 ? 1.0 : 1.35, z); scene.add(m);
 }
 
 // Het scherm in de hal (in de scène neutraal: de keuze gebeurt in de kaart onderin)
@@ -472,8 +472,13 @@ function stap(dt) {
       b.blimp.groep.visible = toestand.droom;
       // Onderweg 2,6 m voor je uit; bij aankomst zweeft hij boven het stuk.
       const v = puntOp(b.route, Math.min(b.route.lengte, b.s + 2.6));
-      const hoogte = b.aangekomen ? 2.75 : 2.35;
-      const doel = new THREE.Vector3(v.x, hoogte + Math.sin(tijd * 1.3) * 0.08, v.z);
+      const doel = new THREE.Vector3(v.x, 2.35 + Math.sin(tijd * 1.3) * 0.08, v.z);
+      if (b.aangekomen) {
+        // Schuin boven het stuk, zodat stuk en schilderij in beeld blijven.
+        const [sx, sz] = STUK[b.zaal];
+        doel.set(sx + Math.sin(v.hoek) * 1.2 - Math.cos(v.hoek) * 1.1, 3.0 + Math.sin(tijd * 1.3) * 0.08,
+          sz + Math.cos(v.hoek) * 1.2 + Math.sin(v.hoek) * 1.1);
+      }
       if (!b.blimp.geplaatst) { b.blimp.groep.position.copy(doel); b.blimp.geplaatst = true; }
       b.blimp.groep.position.lerp(doel, Math.min(1, dt * 2.5));
       b.blimp.groep.rotation.y = v.hoek;
@@ -498,7 +503,7 @@ function werkCameraBij(dt) {
   const b = toestand.speler;
   let snel = 2.2;
   if (toestand.overzicht) {
-    cameraModus = 'overzicht'; wilPos.set(0, 62, 14); wilDoel.set(0, 0, 24);
+    cameraModus = 'overzicht'; wilPos.set(0, 50, 8); wilDoel.set(0, 0, 24);
   } else if (!b) {
     cameraModus = 'hal'; wilPos.set(0, 7, -13.5); wilDoel.set(-1, 1, 0);
   } else {
@@ -513,9 +518,10 @@ function werkCameraBij(dt) {
       // Iets boven ooghoogte in de zaal, met het stuk (en in de droomlaag de blimp) in beeld.
       cameraModus = 'aankomst';
       const [sx, sz] = STUK[b.zaal];
-      const terug = puntOp(b.route, b.s - 4.4);
-      wilPos.set(terug.x + Math.cos(p.hoek) * 1.2, 2.5, terug.z - Math.sin(p.hoek) * 1.2);
-      wilDoel.set(sx, 1.7, sz);
+      // Recht achter de bezoeker, binnen de zaal (niet in de deurpost).
+      const terug = puntOp(b.route, b.s - 2.9);
+      wilPos.set(terug.x, 2.4, terug.z);
+      wilDoel.set(sx, 1.8, sz);
     } else {
       cameraModus = 'volgen';
       const vooruit = puntOp(b.route, b.s + 8);
@@ -641,6 +647,8 @@ window.mockup = {
     el('bijschrift').innerHTML = tekst ? `${tekst}${klein ? `<small>${klein}</small>` : ''}` : '';
   },
   videomodus(aan) { document.body.classList.toggle('video', aan); },
+  droom(aan) { zetDroom(aan); },
+  overzicht(aan) { toestand.overzicht = aan; el('overzicht').setAttribute('aria-pressed', String(aan)); },
   // Telt de pixels in het WebGL-beeld die binnen `marge` van een kleur liggen.
   telKleur(hex, marge = 40) {
     const c = document.createElement('canvas');
